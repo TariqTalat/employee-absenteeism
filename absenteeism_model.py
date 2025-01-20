@@ -44,23 +44,31 @@ class AbsenteeismModel:
         # Replace NaN values
         df = df.fillna(value=0)
 
-        # Standardize relevant columns
+        # Store feature names for future use
         self.feature_names = df.columns.tolist()
-        exclude_cols = ['Reason_1', 'Reason_2', 'Reason_3', 'Reason_4', 'Education']
-        cols_to_scale = [col for col in self.feature_names if col not in exclude_cols]
-        df[cols_to_scale] = self.scaler.fit_transform(df[cols_to_scale])
 
         return df
 
+    def scale_data(self, df):
+        # Standardize relevant columns
+        exclude_cols = ['Reason_1', 'Reason_2', 'Reason_3', 'Reason_4', 'Education']
+        cols_to_scale = [col for col in self.feature_names if col not in exclude_cols]
+        df_scaled = df.copy()
+        df_scaled[cols_to_scale] = self.scaler.fit_transform(df_scaled[cols_to_scale])
+        return df_scaled
+
     def predict(self, df):
-        X = df[self.feature_names]
+        df_scaled = self.scale_data(df)
+        X = df_scaled[self.feature_names]
         return self.model.predict(X)
 
     def predict_proba(self, df):
-        X = df[self.feature_names]
-        return self.model.predict_proba(X)[:, 1]  # Return probability of class 1
+        df_scaled = self.scale_data(df)
+        X = df_scaled[self.feature_names]
+        return self.model.predict_proba(X)[:, 1]
 
     def add_predictions(self, df):
-        df['Prediction'] = self.predict(df)
-        df['Probability'] = self.predict_proba(df)
-        return df
+        cleaned_data = df.copy()
+        cleaned_data['Prediction'] = self.predict(df)
+        cleaned_data['Probability'] = self.predict_proba(df)
+        return cleaned_data
